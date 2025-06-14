@@ -74,33 +74,77 @@ data class Video(
     val likes: Likes? = null
 )
 
+// ========== Класс Comment ==========
+data class Comment(
+    val id: Int,
+    val fromId: Int,
+    val date: Long,
+    val text: String,
+    val donut: Donut? = null,
+    val replyToUser: Int? = null,
+    val replyToComment: Int? = null,
+    val attachments: Array<Attachment>? = null,
+    val parentsStack: List<Int>? = null,
+    val thread: Thread? = null
+)
+
+data class Donut(
+    val isDon: Boolean,
+    val placeholder: String
+)
+
+data class Thread(
+    val count: Int,
+    val items: List<Comment>?,
+    val canPost: Boolean,
+    val showReplyButton: Boolean,
+    val groupsCanPost: Boolean
+)
+
 // ========== WallService для работы с постами ==========
 class WallService {
-    private val posts = mutableListOf<Post>()
+    private var posts = emptyArray<Post>()
+    private var comments = emptyArray<Comment>()
     private var nextId = 1
 
     fun add(post: Post): Post {
         val newPost = post.copy(id = nextId++)
-        posts.add(newPost)
+        posts += newPost
         return newPost
     }
 
     fun update(post: Post): Boolean {
-        val index = posts.indexOfFirst { it.id == post.id }
-        if (index != -1) {
-            posts[index] = post
-            return true
+        for ((index, p) in posts.withIndex()) {
+            if (p.id == post.id) {
+                posts = posts.toMutableList().apply {
+                    set(index, post)
+                }.toTypedArray()
+                return true
+            }
         }
         return false
     }
 
+    // ========== метод для создания комментария ==========
+    fun createComment(postId: Int, comment: Comment): Comment {
+        if (!posts.any { it.id == postId }) {
+            throw PostNotFoundException("Пост с ID $postId не найден")
+        }
+        comments += comment
+        return comment
+    }
+
     fun clear() {
-        posts.clear()
+        posts = emptyArray()
+        comments = emptyArray()
         nextId = 1
     }
 
-    fun getPosts(): List<Post> = posts
+    fun getPosts(): Array<Post> = posts
 }
+
+// ========== Собственное исключение ==========
+class PostNotFoundException(message: String) : Exception(message)
 
 // ========== main() для тестирования ==========
 fun main() {
@@ -138,4 +182,19 @@ fun main() {
 
     val savedPost = wallService.add(post)
     println("Сохранённый пост: $savedPost")
+
+    // Создаем комментарий
+    val comment = Comment(
+        id = 1,
+        fromId = 200,
+        date = System.currentTimeMillis() / 1000,
+        text = "Отличное видео!"
+    )
+
+    try {
+        val addedComment = wallService.createComment(savedPost.id, comment)
+        println("Комментарий создан: $addedComment")
+    } catch (e: PostNotFoundException) {
+        println("Ошибка: ${e.message}")
+    }
 }
