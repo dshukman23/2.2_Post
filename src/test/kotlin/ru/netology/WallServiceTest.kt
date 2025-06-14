@@ -1,8 +1,6 @@
 package ru.netology
 
-//import org.junit.Assert.*
 import org.junit.Before
-//import org.junit.Test
 import org.junit.*
 import org.junit.Assert.*
 
@@ -14,6 +12,8 @@ class WallServiceTest {
         service = WallService()
         service.clear()
     }
+
+    // ========== Существующие тесты ==========
 
     @Test
     fun testAddPost_IdIsAssigned() {
@@ -73,5 +73,48 @@ class WallServiceTest {
         val result = service.update(nonExistingPost)
 
         assertFalse(result)
+    }
+
+    // ========== Новые тесты для createComment ==========
+
+    @Test
+    fun createComment_shouldAddComment_whenPostExists() {
+        // Arrange
+        val post = Post(
+            id = 0,
+            ownerId = 100,
+            fromId = 100,
+            date = System.currentTimeMillis() / 1000,
+            text = "Пост для комментария"
+        )
+
+        val addedPost = service.add(post)
+
+        val comment = Comment(
+            id = 1,
+            fromId = 200,
+            date = System.currentTimeMillis() / 1000,
+            text = "Это тестовый комментарий"
+        )
+
+        // Act
+        val result = service.createComment(postId = addedPost.id, comment)
+
+        // Assert
+        assertEquals(comment, result)
+    }
+
+    @Test(expected = PostNotFoundException::class)
+    fun createComment_shouldThrowException_whenPostNotFound() {
+        // Arrange
+        val comment = Comment(
+            id = 1,
+            fromId = 200,
+            date = System.currentTimeMillis() / 1000,
+            text = "Комментарий к несуществующему посту"
+        )
+
+        // Act
+        service.createComment(postId = 999, comment)
     }
 }
